@@ -6,6 +6,9 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 
+import com.commons.security.DefaultSecurityConfig;
+import com.commons.security.FeignTokenRelayConfig;
+
 @SpringBootApplication
 @ComponentScan(basePackages = {
 	    "com.authuser",        // your service's own code
@@ -13,8 +16,7 @@ import org.springframework.context.annotation.Import;
 	})
 
 @EnableFeignClients(basePackages = "com.authcore.client")
-
-@Import({com.authcore.config.RsaKeyConfig.class})
+@Import({DefaultSecurityConfig.class, FeignTokenRelayConfig.class})
 public class AuthUserApplication {
 
 	public static void main(String[] args) {

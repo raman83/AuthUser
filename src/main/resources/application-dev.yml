@@ -40,3 +40,16 @@ cors:
 consent:
   service:
     url: http://localhost:8096/api/v1
+    
+
+auth0:
+  domain: https://dev-wgk04dj5v68sbhre.us.auth0.com
+  mgmt-client-id: 7m9h4UQsjOeVom5ysSt0t3TFLRgibBkT
+  mgmt-client-secret: R4aR-TZspPcDf9davncKzgucuUPI2pLGnUPkhO90I4ZWEMQNMfmX2bmC4c0MUJy-
+  audience: https://dev-wgk04dj5v68sbhre.us.auth0.com/api/v2/
+  
+  
+  
+  loginClientId: u78ytpMTj8rTv2ugyVebqydojAhYjbqe
+  loginClientSecret: cE0V135DmioRy2v8-XDa-4UqJn4xMqTwDZT8LGrxE3j65cBO_gvRee23DBxzlaEF
+  loginAudience: https://mockbank/api

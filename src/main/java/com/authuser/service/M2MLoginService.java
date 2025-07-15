@@ -11,7 +11,7 @@ import com.authuser.dto.LoginResponse;
 
 
 @Service
-public class LoginService {
+public class M2MLoginService {
 
     @Value("${auth0.domain}")
     private String domain;
@@ -27,24 +27,27 @@ public class LoginService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public LoginResponse login(String username, String password) {
+  
+    
+    
+    
+    
+    public LoginResponse getAccessToken(String clientId, String clientSecret) {
+    	
     	String url = domain + "/oauth/token";
 
-        Map<String, String> body = new java.util.HashMap<>();
-        body.put("grant_type", "http://auth0.com/oauth/grant-type/password-realm");
-        body.put("username", username);
-        body.put("password", password);
-        body.put("audience", audience);
-        body.put("scope", "openid profile email");
-        body.put("client_id", clientId);
-        body.put("client_secret", clientSecret);
-        body.put("realm", "Username-Password-Authentication");
+        Map<String, String> request = new java.util.HashMap<>();
+        request.put("grant_type", "client_credentials");
+        request.put("client_id", clientId);
+        request.put("client_secret", clientSecret);
+        request.put("audience", audience);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+        HttpEntity<Map<String, String>> entity = new HttpEntity<>(request, headers);
 
+        ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
         Map<String, Object> res = response.getBody();
 
         return new LoginResponse(
@@ -54,9 +57,6 @@ public class LoginService {
                 ((Number) res.get("expires_in")).longValue()
         );
     }
-    
-    
-   
     
     
     

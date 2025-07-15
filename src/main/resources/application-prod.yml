@@ -13,7 +13,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate  # Use validate for safety in production
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -24,17 +24,19 @@ spring:
     serialization:
       INDENT_OUTPUT: false
 
-logging:
-  level:
-    root: WARN
-    com.authuser: INFO
-    org.springframework.security: WARN
-
 cors:
   allowed-origins: "*"
   allowed-methods: "GET,POST"
-  
-  
+
 consent:
   service:
-    url: http://consent-service:8096/api/v1
+    url: ${CONSENT_SERVICE_URL}
+
+auth0:
+  domain: ${AUTH0_DOMAIN}
+  mgmt-client-id: ${AUTH0_MGMT_CLIENT_ID}
+  mgmt-client-secret: ${AUTH0_MGMT_CLIENT_SECRET}
+  audience: ${AUTH0_AUDIENCE}
+  loginClientId: ${AUTH0_LOGIN_CLIENT_ID}
+  loginClientSecret: ${AUTH0_LOGIN_CLIENT_SECRET}
+  loginAudience: ${AUTH0_LOGIN_AUDIENCE}
