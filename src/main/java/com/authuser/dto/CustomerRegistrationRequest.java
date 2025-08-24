@@ -1,6 +1,9 @@
 package com.authuser.dto;
 
 import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -8,8 +11,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CustomerRegistrationRequest {
-    private String email;
-    private String password;
-    private String customerId; // Link to customer-service record
-    private String role;
+	  @Email @NotBlank
+	  private String email;
+	  @NotBlank
+	  private String password;
+	  @NotBlank
+	  private String customerId;
+	  @NotBlank
+	  private String role; // logical role key (mapped to roleId in config)
 }

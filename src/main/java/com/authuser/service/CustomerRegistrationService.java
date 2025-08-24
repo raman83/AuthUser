@@ -25,6 +25,9 @@ public class CustomerRegistrationService {
 
 	
 	public void registerCustomer(CustomerRegistrationRequest request) throws Auth0Exception {
+		
+		
+		
 		CustomerCredential entity = new CustomerCredential();
 	    entity.setEmail(request.getEmail());
 	    entity.setPasswordHash(request.getPassword());

@@ -94,6 +94,12 @@
   <artifactId>okta-spring-boot-starter</artifactId>
   <version>3.0.5</version>
 </dependency>
+<dependency>
+  <groupId>com.commons</groupId>
+  <artifactId>commons-observability</artifactId>
+  <version>1.0.3</version>
+</dependency>
+
 
 <dependency>
   <groupId>jakarta.ws.rs</groupId>
