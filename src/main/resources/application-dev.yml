@@ -2,28 +2,14 @@ server:
   port: 8094
 
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://dev-wgk04dj5v68sbhre.us.auth0.com/
   application:
     name: auth-user
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/auth_user_db
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-
-  jackson:
-    serialization:
-      INDENT_OUTPUT: true
-      
 
 logging:
   level:
@@ -31,25 +17,18 @@ logging:
     com.authuser: DEBUG
     org.springframework.security: DEBUG
     
+
     
     
-cors:
-  allowed-origins: "*"
-  allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
-  
 consent:
   service:
     url: http://localhost:8096/api/v1
     
-
+    
 auth0:
   domain: https://dev-wgk04dj5v68sbhre.us.auth0.com
-  mgmt-client-id: 7m9h4UQsjOeVom5ysSt0t3TFLRgibBkT
-  mgmt-client-secret: R4aR-TZspPcDf9davncKzgucuUPI2pLGnUPkhO90I4ZWEMQNMfmX2bmC4c0MUJy-
-  audience: https://dev-wgk04dj5v68sbhre.us.auth0.com/api/v2/
-  
-  
-  
-  loginClientId: u78ytpMTj8rTv2ugyVebqydojAhYjbqe
-  loginClientSecret: cE0V135DmioRy2v8-XDa-4UqJn4xMqTwDZT8LGrxE3j65cBO_gvRee23DBxzlaEF
-  loginAudience: https://mockbank/api
+  audience: https://mockbank/api
+  mgmt:
+     client-id: 7m9h4UQsjOeVom5ysSt0t3TFLRgibBkT
+     client-secret: XXXXXXX
+     audience: https://dev-wgk04dj5v68sbhre.us.auth0.com/api/v2/

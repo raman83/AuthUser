@@ -1,79 +1,133 @@
 package com.authuser.service;
 
-import com.auth0.client.mgmt.ManagementAPI;
-import com.auth0.client.mgmt.filter.RolesFilter;
-import com.auth0.exception.Auth0Exception;
-import com.auth0.json.mgmt.roles.Role;
-import com.auth0.json.mgmt.roles.RolesPage;
-import com.auth0.json.mgmt.users.User;
-
-import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
+/**
+ * Service responsible for interacting with the Auth0 Management API.
+ *
+ * <p>This class encapsulates all calls to Auth0's Management API for:
+ * <ul>
+ *   <li>Creating new database (Username-Password-Authentication) users</li>
+ *   <li>Assigning roles to users after creation</li>
+ * </ul>
+ *
+ * <p>By centralizing Auth0 API calls here, we ensure that:
+ * <ul>
+ *   <li>Only this service knows about the Management API credentials.</li>
+ *   <li>All microservices can delegate identity provisioning to this service instead of calling Auth0 directly.</li>
+ *   <li>Our code follows the principle of least privilege — one service holds admin capabilities.</li>
+ * </ul>
+ */
 @Service
-@RequiredArgsConstructor
 public class Auth0UserService {
 
-    private static final Logger logger = LoggerFactory.getLogger(Auth0UserService.class);
-
+    /**
+     * Auth0 domain (tenant URL), e.g. https://dev-wgk04dj5v68sbhre.us.auth0.com
+     * Configured in application.yml as auth0.domain
+     */
     @Value("${auth0.domain}")
     private String domain;
 
-    @Value("${auth0.mgmt-client-id}")
-    private String clientId;
+    private final ManagementTokenService tokens;
+    private final RestTemplate rt = new RestTemplate();
 
-    @Value("${auth0.mgmt-client-secret}")
-    private String clientSecret;
+    /**
+     * Constructor injection of the ManagementTokenService, which is responsible for
+     * obtaining a valid Management API access token using the Client Credentials flow.
+     *
+     * @param tokens service that provides the "Bearer" token for Auth0 Management API calls
+     */
+    public Auth0UserService(ManagementTokenService tokens) {
+        this.tokens = tokens;
+    }
 
-    @Value("${auth0.audience}")
-    private String audience;
+    /**
+     * Creates a new user in Auth0's "Username-Password-Authentication" database connection.
+     *
+     * <p>This is typically called after a customer completes KYC in CustomerService.
+     * The method uses the Management API to provision the user with an email, password,
+     * username (we map to customerId), and optional custom metadata.</p>
+     *
+     * <h3>HTTP Request</h3>
+     * POST {domain}/api/v2/users
+     *
+     * @param email       the user's email
+     * @param password    the initial password
+     * @param customerId  external customer ID (used as username and stored in app_metadata)
+     * @return a {@link Map} containing Auth0's created user object (user_id, email, etc.)
+     */
+    public Map createDbUser(String email, String password, String customerId) {
+        // 1️⃣ Retrieve the Management API bearer token
+        String auth = tokens.getBearer();
 
-    private ManagementAPI managementAPI;
+        // 2️⃣ Set up HTTP headers
+        HttpHeaders h = new HttpHeaders();
+        h.setContentType(MediaType.APPLICATION_JSON);
+        h.set("Authorization", auth);
 
-    @PostConstruct
-    public void init() throws Auth0Exception {
-        logger.info("Initializing Auth0UserService and fetching Management API token...");
-        try {
-            String token = Auth0TokenUtil.fetchManagementApiToken(domain, clientId, clientSecret, audience);
-            this.managementAPI = new ManagementAPI(domain, token);
-            logger.info("Auth0 ManagementAPI client initialized successfully.");
-        } catch (Exception e) {
-            logger.error("Failed to initialize Auth0UserService", e);
-            throw e;
+        // 3️⃣ Build the request body for the new user
+        Map<String, Object> body = new HashMap<>();
+        List<String> roles =new ArrayList<String>();
+       
+        body.put("email", email);
+        body.put("password", password);
+        body.put("username", customerId); // we use customerId as username
+        body.put("connection", "Username-Password-Authentication");
+        
+        // 4️⃣ Include custom metadata (e.g., customer_id) to link Auth0 user back to our domain model
+        Map<String, Object> appMeta = new HashMap<>();
+        appMeta.put("customer_id", customerId);
+
+        body.put("app_metadata", appMeta);
+
+        // 5️⃣ Call Auth0's Management API to create the user
+        ResponseEntity<Map> resp = rt.postForEntity(
+                domain + "/api/v2/users",
+                new HttpEntity<>(body, h),
+                Map.class
+        );
+
+        // 6️⃣ Throw an exception if creation failed
+        if (!resp.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Auth0 user creation failed: " + resp.getStatusCode());
         }
+
+        
+        Map createdUser = resp.getBody();
+        String userId = (String) createdUser.get("user_id"); // e.g. auth0|abc123
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalStateException("Auth0 user created but user_id missing");
+        }
+
+        // 👇 Straight role assignment — that’s it.
+        assignRole(userId, "rol_c7PHGjx2QtuPyVBE", auth);
+        
+        
+        // ✅ Return the created user object
+        return resp.getBody();
     }
 
-    public void registerUserInAuth0(String email, String password, String username,String roleName) throws Auth0Exception {
-        logger.info("Registering user with email: {} and username: {}", email, username);
+    
+    private void assignRole(String userId, String roleId, String bearer) {
+        HttpHeaders h = new HttpHeaders();
+        h.setContentType(MediaType.APPLICATION_JSON);
+        h.set("Authorization", bearer);
 
-        User user = new User("Username-Password-Authentication");
-        user.setEmail(email);
-        user.setPassword(password);
-        user.setUsername(username);
-        user.setConnection("Username-Password-Authentication");
-        user.setEmailVerified(false);
-        user.setVerifyEmail(false);
+        Map<String, Object> body = Map.of("roles", List.of(roleId));
 
-        User createdUser = managementAPI.users().create(user).execute().getBody();
-        logger.info("Created Auth0 user with ID: {}", createdUser.getId());
+        String url = domain + "/api/v2/users/" + userId + "/roles"; // ✅ use raw user_id e.g. auth0|xxxxx
 
-        RolesFilter rolesFilter = new RolesFilter().withPage(0, 25);
-        RolesPage rolesPage = managementAPI.roles().list(rolesFilter).execute().getBody();
-
-        Role role = rolesPage.getItems()
-                .stream()
-                .filter(r -> r.getName().equalsIgnoreCase(roleName))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
-
-        logger.info("Assigning role '{}' to user ID {}", roleName, createdUser.getId());
-        managementAPI.users().addRoles(createdUser.getId(), Collections.singletonList(role.getId())).execute();
+        rt.postForEntity(
+            url,
+            new HttpEntity<>(body, h),
+            Void.class
+        );
     }
+    
+    
 }
